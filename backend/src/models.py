@@ -39,6 +39,7 @@ POSTGRES = {
     'user': os.environ["POSTGRES_USER"]
 }
 URI = 'postgresql://{user}:{password}@{host}:{port}/{db}'.format(**POSTGRES)
-print(URI)
 
-session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=create_engine(URI)))
+engine = create_engine(URI)
+Base.metadata.create_all(engine)
+session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
