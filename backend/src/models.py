@@ -24,7 +24,7 @@ class Sighting(Base):
         return cls(**data)
 
     def to_json(self):
-        to_serialize = ['id', 'timestamp', 'ip_address']
+        to_serialize = ["id", "timestamp", "ip_address"]
         d = {}
         for attr_name in to_serialize:
             d[attr_name] = getattr(self, attr_name)
@@ -32,13 +32,13 @@ class Sighting(Base):
 
 
 POSTGRES = {
-    'db': os.environ["POSTGRES_DB"],
-    'host': os.environ["POSTGRES_HOST"],
-    'password': os.environ["POSTGRES_PASSWORD"],
-    'port': os.environ["POSTGRES_PORT"],
-    'user': os.environ["POSTGRES_USER"]
+    "db": os.environ["POSTGRES_DB"],
+    "host": os.environ["POSTGRES_HOST"],
+    "password": os.environ["POSTGRES_PASSWORD"],
+    "port": os.environ["POSTGRES_PORT"],
+    "user": os.environ["POSTGRES_USER"],
 }
-URI = 'postgresql://{user}:{password}@{host}:{port}/{db}'.format(**POSTGRES)
+URI = "postgresql://{user}:{password}@{host}:{port}/{db}".format(**POSTGRES)
 
 engine = create_engine(URI)
 Base.metadata.create_all(engine)

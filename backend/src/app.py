@@ -1,14 +1,31 @@
+from aiohttp.web import Application, run_app
+
+from aiohttp_rest import RestResource
+from models import Sighting
+
+
+sightings = {}
+app = Application()
+person_resource = RestResource('sightings', Sighting, sightings, ('id', 'timestamp', 'ip_address'), 'id')
+person_resource.register(app.router)
+
+
+if __name__ == '__main__':
+    run_app(app)
+
+"""
 import datetime
 
-import models
+from models import session, Sighting
 
 # POST
-test = models.Sighting(datetime.datetime.now(), 'test')
-models.session.add(test)
-models.session.commit()
+test = Sighting(datetime.datetime.now(), "test")
+session.add(test)
+session.commit()
 
 # GET
-instance = models.session.query(models.Sighting).first()
+instance = session.query(Sighting).first()
 print(instance.id)
 
-print('Test done')
+print("Test done")
+"""
