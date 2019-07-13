@@ -1,0 +1,1 @@
+*/5 * * * * bash /report_nmap.sh
