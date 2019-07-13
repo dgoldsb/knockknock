@@ -15,8 +15,7 @@ class Sighting(Base):
     timestamp = Column(DateTime, default=func.now())
     ip_address = Column(String)
 
-    def __init__(self, timestamp: datetime.datetime, ip_address: str):
-        self.timestamp = timestamp
+    def __init__(self, ip_address: str):
         self.ip_address = ip_address
 
     @classmethod

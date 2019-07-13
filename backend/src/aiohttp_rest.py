@@ -2,11 +2,19 @@
 Used for reference: https://blog.apcelent.com/create-rest-api-using-aiohttp.html.
 """
 
+import datetime
 import inspect
 import json
 from collections import OrderedDict
 
-from aiohttp.web import HTTPBadRequest, HTTPMethodNotAllowed, Request, Response, UrlDispatcher
+from aiohttp.web import (
+    HTTPBadRequest,
+    HTTPMethodNotAllowed,
+    Request,
+    Response,
+    UrlDispatcher,
+)
+from sqlalchemy import func
 
 from models import Sighting, session
 
@@ -51,38 +59,52 @@ class SightingEndpoint(RestEndpoint):
         self.resource = resource
 
     async def get(self, request: Request) -> Response:
-        data = []
+        request_body = await request.json()
 
-        sightings = session.query(Sighting).all()
-        for instance in self.resource.collection.values():
-            data.append(self.resource.render(instance))
-        data = self.resource.encode(data)
-        return Response ( status=200, body=self.resource.encode({
-            'notes': [
-                {'id': note.id, 'title': note.title, 'description': note.description,
-                 'created_at': note.created_at, 'created_by': note.created_by, 'priority': note.priority}
+        datetime_from = datetime.datetime.strptime(request_body["from"], '%Y-%m-%dT%h:%m:%s.%f')
+        try:
+            datetime_to = datetime.datetime.strptime(request_body["to"], '%Y-%m-%dT%h:%m:%s.%f')
+            records = session.query(Sighting).filter(
+                Sighting.timestamp >= datetime_from,
+                Sighting.timestamp <= datetime_to,
+            )
+        except KeyError:
+            records = session.query(Sighting).filter(
+                Sighting.timestamp >= datetime_from
+            )
 
-                for note in session.query(Note)
+        return Response(
+            status=200,
+            body=self.resource.encode(
+                {
+                    "notes": [
+                        {
+                            "id": sighting.id,
+                            "ip_address": sighting.ip_address,
+                            "timestamp": sighting.ip_address,
+                        }
+                        for sighting in records
+                    ]
+                }
+            ),
+            content_type="application/json",
+        )
 
-            ]
-        }), content_type='application/json')
-
-
-    async def post(self, request: Request):
+    async def post(self, request: Request) -> Response:
         data = await request.json()
-        note=Note(title=data['title'], description=data['description'], created_at=data['created_at'], created_by=data['created_by'], priority=data['priority'])
-        session.add(note)
+        sighting = Sighting(ip_address=data["ip_address"])
+        session.add(sighting)
         session.commit()
 
-        return Response(status=201, body=self.resource.encode({
-            'notes': [
-                {'id': note.id, 'title': note.title, 'description': note.description,
-                 'created_at': note.created_at, 'created_by': note.created_by, 'priority': note.priority}
+        record = session.query(Sighting).filter(
+            Sighting.id == session.query(func.max(Sighting.id))
+        )
 
-                for note in session.query(Note)
-
-            ]
-        }), content_type='application/json')
+        return Response(
+            status=200,
+            body=self.resource.encode(record.to_json()),
+            content_type="application/json",
+        )
 
 
 class RestResource:
@@ -96,14 +118,20 @@ class RestResource:
         self.sighting_endpoint = SightingEndpoint(self)
 
     def register(self, router: UrlDispatcher):
-        router.add_route('*', '/{sightings}'.format(sightings=self.sightings), self.sighting_endpoint.dispatch)
+        router.add_route(
+            "*",
+            "/{sightings}".format(sightings=self.sightings),
+            self.sighting_endpoint.dispatch,
+        )
 
     def render(self, instance):
-        return OrderedDict((notes, getattr(instance, notes)) for notes in self.properties)
+        return OrderedDict(
+            (notes, getattr(instance, notes)) for notes in self.properties
+        )
 
     @staticmethod
     def encode(data):
-        return json.dumps(data, indent=4).encode('utf-8')
+        return json.dumps(data, indent=4).encode("utf-8")
 
     def render_and_encode(self, instance):
         return self.encode(self.render(instance))
