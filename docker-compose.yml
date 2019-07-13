@@ -1,0 +1,39 @@
+---
+version: "3.3"
+
+services:
+  backend:
+    image: knockknock-backend
+    depends_on:
+      - "postgresql"
+    environment:
+      POSTGRES_DB: knockknock
+      POSTGRES_HOST: db1.internal.prod.example.com
+      POSTGRES_PASSWORD: docker
+      POSTGRES_PORT: '5432'
+      POSTGRES_USER: docker
+    networks:
+      - mynetwork
+  postgresql:
+    image: postgres:11.4-alpine
+    ports:
+      - '5432:5432'
+    volumes:
+      - db-data:/var/lib/postgresql/knockknock
+    environment:
+      POSTGRES_DB: knockknock
+      POSTGRES_PASSWORD: docker
+      POSTGRES_USER: docker
+    networks:
+      mynetwork:
+        aliases:
+          - db1.internal.prod.example.com
+          - db2.internal.prod.example.com
+
+volumes:
+  db-data:
+    driver: local
+
+networks:
+  mynetwork:
+    driver: bridge
