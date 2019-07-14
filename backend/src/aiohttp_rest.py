@@ -108,6 +108,13 @@ class DeviceEndpoint(RestEndpoint):
             content_type="application/json",
         )
 
+    # TODO: UPDATE
+
+
+
+# TODO: KnockEndpoint
+
+
 
 class SightingEndpoint(RestEndpoint):
     def __init__(self, resource):
