@@ -8,10 +8,10 @@ from models import Sighting
 
 sightings = {}
 app = Application()
-person_resource = RestResource(
+sightings_resource = RestResource(
     "sightings", Sighting, sightings, ("id", "timestamp", "ip_address"), "id"
 )
-person_resource.register(app.router)
+sightings_resource.register(app.router)
 
 
 if __name__ == "__main__":

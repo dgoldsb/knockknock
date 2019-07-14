@@ -18,7 +18,7 @@ from aiohttp.web import (
 )
 from sqlalchemy import func
 
-from models import Sighting, session
+from models import Device, Sighting, session
 
 
 DEFAULT_METHODS = ("GET", "POST", "PUT", "DELETE")
@@ -54,6 +54,58 @@ class RestEndpoint:
 
         return await method(
             **{arg_name: available_args[arg_name] for arg_name in wanted_args}
+        )
+
+
+class DeviceEndpoint(RestEndpoint):
+    def __init__(self, resource):
+        super().__init__()
+        self.resource = resource
+
+    async def get(self, request: Request) -> Response:
+        LOGGER.info("Received %s request on %s", request.method, request.url)
+
+        devices = session.query(Device).distinct()
+
+        return Response(
+            status=200,
+            body=self.resource.encode(
+                {
+                    "devices": [device.to_json() for device in devices]
+                }
+            ),
+            content_type="application/json",
+        )
+
+    async def post(self, request: Request) -> Response:
+        LOGGER.info("Received %s request on %s", request.method, request.url)
+        data = await request.json()
+        device = Device(
+            alias=data["alias"]
+        )
+
+        existing_device = session.query(Device).filter(Device.alias == device.alias)
+        try:
+            LOGGER.info("Found existing Device %s", device.alias)
+            return Response(
+                status=200,
+                body=self.resource.encode(existing_device[0].to_json()),
+                content_type="application/json",
+            )
+        except:
+            LOGGER.info("Creating new Device %s", device.alias)
+
+        session.add(device)
+        session.commit()
+
+        new_device = session.query(Device).filter(
+            Device.alias == device.alias
+        )
+
+        return Response(
+            status=200,
+            body=self.resource.encode(new_device[0].to_json()),
+            content_type="application/json",
         )
 
 
@@ -93,13 +145,7 @@ class SightingEndpoint(RestEndpoint):
             status=200,
             body=self.resource.encode(
                 {
-                    "sightings": [
-                        {
-                            "alias": sighting.alias,
-                            "timestamp": sighting.last_activity_timestamp,
-                        }
-                        for sighting in sightings
-                    ]
+                    "sightings": [{"alias": sighting.alias, "last_activity_timestamp": sighting.last_activity_timestamp} for sighting in sightings]
                 }
             ),
             content_type="application/json",
@@ -133,6 +179,7 @@ class RestResource:
         self.properties = properties
         self.id_field = id_field
 
+        self.devices_endpoint = DeviceEndpoint(self)
         self.sighting_endpoint = SightingEndpoint(self)
 
     def register(self, router: UrlDispatcher):
@@ -140,6 +187,11 @@ class RestResource:
             "*",
             "/{sightings}".format(sightings=self.sightings),
             self.sighting_endpoint.dispatch,
+        )
+        router.add_route(
+            "*",
+            "/{sightings}/devices".format(sightings=self.sightings),
+            self.devices_endpoint.dispatch,
         )
 
     def render(self, instance):

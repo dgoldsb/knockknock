@@ -15,8 +15,10 @@ class Device(Base):
     ip_address = Column(String, default=None)
     owner = Column(String, default=None)
 
-    def __init__(self, alias):
+    def __init__(self, alias, ip_address=None, owner=None):
         self.alias = alias
+        self.ip_address = ip_address
+        self.owner = owner
 
     @classmethod
     def from_json(cls, data):
@@ -36,8 +38,7 @@ class Sighting(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     current_timestamp = Column(Integer)
     last_activity_timestamp = Column(Integer)
-    #alias = Column(String, ForeignKey(Device.alias)) # TODO: enforce
-    alias = Column(String)
+    alias = Column(String, ForeignKey(Device.alias))
 
     def __init__(
         self, alias: str, last_activity_timestamp: int, current_timestamp=int(time.time())

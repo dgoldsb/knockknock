@@ -23,19 +23,21 @@ def get_dns_requests():
     return response.json()
 
 
+def post_alias(alias: str):
+    api = f'http://{os.environ["BACKEND_HOST"]}/sightings/devices'
+    LOGGER.info("Making request to %s", api)
+    response = requests.post(api, json={"alias": alias})
+    response.raise_for_status()
+
+
 def post_sighting(alias: str, epoch_ts: int):
     api = f'http://{os.environ["BACKEND_HOST"]}/sightings'
     LOGGER.info("Making request to %s", api)
-    test = requests.get(api)
-    LOGGER.info("Test %s", test)
     response = requests.post(api, json={"alias": alias, "timestamp": epoch_ts})
     response.raise_for_status()
 
 
-if __name__ == "__main__":
-    logging.basicConfig(
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", stream=sys.stdout
-    )
+def query_pihole():
     dns_requests = get_dns_requests()
 
     last_sightings = defaultdict(lambda: 0)
@@ -49,5 +51,17 @@ if __name__ == "__main__":
         len(last_sightings),
     )
 
+    for key in last_sightings.keys():
+        post_alias(key)
+
     for key, value in last_sightings.items():
         post_sighting(key, value)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", stream=sys.stdout
+    )
+    while True:
+        query_pihole()
+        time.sleep(int(os.environ["FREQUENCY_MINUTES"]) * 60)
