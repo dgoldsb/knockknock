@@ -1,29 +1,57 @@
-import datetime
 import os
+import time
 
-from sqlalchemy import create_engine, Column, DateTime, String, Integer, func
+from sqlalchemy import create_engine, Column, ForeignKey, String, Integer, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 Base = declarative_base()
 
 
-class Sighting(Base):
-    __tablename__ = "sighting"
+class Device(Base):
+    __tablename__ = "device"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    timestamp = Column(DateTime, default=func.now())
-    ip_address = Column(String)
+    alias = Column(String, primary_key=True)
+    ip_address = Column(String, default=None)
+    owner = Column(String, default=None)
 
-    def __init__(self, ip_address: str):
-        self.ip_address = ip_address
+    def __init__(self, alias):
+        self.alias = alias
 
     @classmethod
     def from_json(cls, data):
         return cls(**data)
 
     def to_json(self):
-        to_serialize = ["id", "timestamp", "ip_address"]
+        to_serialize = ["ip_address", "alias", "owner"]
+        d = {}
+        for attr_name in to_serialize:
+            d[attr_name] = getattr(self, attr_name)
+        return d
+
+
+class Sighting(Base):
+    __tablename__ = "sighting"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    current_timestamp = Column(Integer)
+    last_activity_timestamp = Column(Integer)
+    #alias = Column(String, ForeignKey(Device.alias)) # TODO: enforce
+    alias = Column(String)
+
+    def __init__(
+        self, alias: str, last_activity_timestamp: int, current_timestamp=int(time.time())
+    ):
+        self.alias = alias
+        self.current_timestamp = current_timestamp
+        self.last_activity_timestamp = last_activity_timestamp
+
+    @classmethod
+    def from_json(cls, data):
+        return cls(**data)
+
+    def to_json(self):
+        to_serialize = ["id", "current_timestamp", "last_activity_timestamp", "alias"]
         d = {}
         for attr_name in to_serialize:
             d[attr_name] = getattr(self, attr_name)

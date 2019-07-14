@@ -1,10 +1,12 @@
 """
-Used for reference: https://blog.apcelent.com/create-rest-api-using-aiohttp.html.
+Used for reference:
+- https://blog.apcelent.com/create-rest-api-using-aiohttp.html
+- https://medium.com/@chimamireme/setting-up-a-modern-python-web-application-with-aiohttp-graphql-and-docker-149c52657142
 """
 
-import datetime
 import inspect
 import json
+import logging
 from collections import OrderedDict
 
 from aiohttp.web import (
@@ -20,6 +22,8 @@ from models import Sighting, session
 
 
 DEFAULT_METHODS = ("GET", "POST", "PUT", "DELETE")
+LOGGER = logging.getLogger("query_pihole")
+LOGGER.setLevel(logging.INFO)
 
 
 class RestEndpoint:
@@ -46,7 +50,7 @@ class RestEndpoint:
         unsatisfied_args = set(wanted_args) - set(available_args.keys())
         if unsatisfied_args:
             # Expected match info that doesn't exist.
-            raise HTTPBadRequest("")
+            raise HTTPBadRequest
 
         return await method(
             **{arg_name: available_args[arg_name] for arg_name in wanted_args}
@@ -59,31 +63,42 @@ class SightingEndpoint(RestEndpoint):
         self.resource = resource
 
     async def get(self, request: Request) -> Response:
-        request_body = await request.json()
-
-        datetime_from = datetime.datetime.strptime(request_body["from"], '%Y-%m-%dT%h:%m:%s.%f')
+        LOGGER.info("Received %s request on %s", request.method, request.url)
         try:
-            datetime_to = datetime.datetime.strptime(request_body["to"], '%Y-%m-%dT%h:%m:%s.%f')
-            records = session.query(Sighting).filter(
-                Sighting.timestamp >= datetime_from,
-                Sighting.timestamp <= datetime_to,
-            )
-        except KeyError:
-            records = session.query(Sighting).filter(
-                Sighting.timestamp >= datetime_from
-            )
+            request_body = await request.json()
+
+            datetime_from = int(request_body["from"])
+            try:
+                datetime_to = int(request_body["to"])
+                sightings = (
+                    session.query(Sighting.alias, Sighting.last_activity_timestamp)
+                    .distinct()
+                    .filter(
+                        Sighting.last_activity_timestamp >= datetime_from,
+                        Sighting.last_activity_timestamp <= datetime_to,
+                    )
+                )
+            except KeyError:
+                sightings = (
+                    session.query(Sighting.alias, Sighting.last_activity_timestamp)
+                    .distinct()
+                    .filter(Sighting.last_activity_timestamp >= datetime_from)
+                )
+        except json.decoder.JSONDecodeError:
+            sightings = session.query(
+                Sighting.alias, Sighting.last_activity_timestamp
+            ).distinct()
 
         return Response(
             status=200,
             body=self.resource.encode(
                 {
-                    "notes": [
+                    "sightings": [
                         {
-                            "id": sighting.id,
-                            "ip_address": sighting.ip_address,
-                            "timestamp": sighting.ip_address,
+                            "alias": sighting.alias,
+                            "timestamp": sighting.last_activity_timestamp,
                         }
-                        for sighting in records
+                        for sighting in sightings
                     ]
                 }
             ),
@@ -92,17 +107,19 @@ class SightingEndpoint(RestEndpoint):
 
     async def post(self, request: Request) -> Response:
         data = await request.json()
-        sighting = Sighting(ip_address=data["ip_address"])
+        sighting = Sighting(
+            alias=data["alias"], last_activity_timestamp=data["timestamp"]
+        )
         session.add(sighting)
         session.commit()
 
-        record = session.query(Sighting).filter(
+        records = session.query(Sighting).filter(
             Sighting.id == session.query(func.max(Sighting.id))
         )
 
         return Response(
             status=200,
-            body=self.resource.encode(record.to_json()),
+            body=self.resource.encode(records[0].to_json()),
             content_type="application/json",
         )
 

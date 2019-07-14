@@ -12,6 +12,8 @@ services:
       POSTGRES_PASSWORD: docker
       POSTGRES_PORT: '5432'
       POSTGRES_USER: docker
+    ports:
+      - "8080:8080"
     networks:
       - mynetwork
   cronjob:
@@ -19,7 +21,9 @@ services:
     depends_on:
       - backend
     environment:
-      RANGE: 192.168.178.0/24
+      BACKEND_HOST: "backend_1:8080"
+      PIHOLE_HOST: "192.168.178.23"
+      PIHOLE_TOKEN: "ce66bcd164836d448b3e1f1fbb93552c99ff2b8526d6dc3835153ad679061d73"
     networks:
       - mynetwork
   postgresql:

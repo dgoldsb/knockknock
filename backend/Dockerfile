@@ -25,5 +25,8 @@ COPY src/ /
 RUN python -m pipenv --clear --site-packages install --deploy \
     && rm "${WORK_DIR}/Pipfile.lock"
 
+# Expose the port.
+EXPOSE 8080
+
 # Set the entrypoint.
 ENTRYPOINT ["python", "-m", "pipenv", "run", "python", "app.py"]

@@ -1,0 +1,1 @@
+*/3 * * * * python -m pipenv run python query_pihole.py

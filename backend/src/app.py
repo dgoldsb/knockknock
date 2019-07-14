@@ -1,3 +1,5 @@
+import logging
+import sys
 from aiohttp.web import Application, run_app
 
 from aiohttp_rest import RestResource
@@ -13,4 +15,7 @@ person_resource.register(app.router)
 
 
 if __name__ == "__main__":
-    run_app(app, host='localhost', port=9090)
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", stream=sys.stdout
+    )
+    run_app(app, port=8080)
