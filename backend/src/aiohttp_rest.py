@@ -106,6 +106,7 @@ class SightingEndpoint(RestEndpoint):
         )
 
     async def post(self, request: Request) -> Response:
+        LOGGER.info("Received %s request on %s", request.method, request.url)
         data = await request.json()
         sighting = Sighting(
             alias=data["alias"], last_activity_timestamp=data["timestamp"]

@@ -28,7 +28,7 @@ def post_sighting(alias: str, epoch_ts: int):
     LOGGER.info("Making request to %s", api)
     test = requests.get(api)
     LOGGER.info("Test %s", test)
-    response = requests.post(api, json={"ip_address": alias, "timestamp": epoch_ts})
+    response = requests.post(api, json={"alias": alias, "timestamp": epoch_ts})
     response.raise_for_status()
 
 

@@ -36,5 +36,9 @@ RUN chmod 0644 /etc/cron.d/cron-schedule
 # Apply cron job
 RUN crontab /etc/cron.d/cron-schedule
 
+# Set the entrypoint.
+# TODO: Remove this entrypoint
+ENTRYPOINT ["python", "-m", "pipenv", "run", "python", "query_pihole.py"]
+
 # Run the command on container startup
 CMD ["cron", "-f"]
