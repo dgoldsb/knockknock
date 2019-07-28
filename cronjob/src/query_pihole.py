@@ -24,7 +24,7 @@ def get_dns_requests():
 
 
 def post_alias(alias: str):
-    api = f'http://{os.environ["BACKEND_HOST"]}/sightings/devices'
+    api = f'http://{os.environ["BACKEND_HOST"]}/devices'
     LOGGER.info("Making request to %s", api)
     response = requests.post(api, json={"alias": alias})
     response.raise_for_status()
