@@ -41,7 +41,10 @@ class Sighting(Base):
     alias = Column(String, ForeignKey(Device.alias))
 
     def __init__(
-        self, alias: str, last_activity_timestamp: int, current_timestamp=int(time.time())
+        self,
+        alias: str,
+        last_activity_timestamp: int,
+        current_timestamp=int(time.time()),
     ):
         self.alias = alias
         self.current_timestamp = current_timestamp
